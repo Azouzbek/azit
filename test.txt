@@ -1,0 +1,1783 @@
+import tkinter as tk
+from tkinter import messagebox
+from tkinter.ttk import Style
+import tkinter as tk
+import ttkbootstrap as ttk
+from PIL import Image, ImageTk
+from tkinter import ttk
+import tkinter as tk
+import email
+from email.mime.text import MIMEText
+import smtplib
+import os
+from docx import Document
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email import encoders
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import io
+from docx.shared import Inches
+import numpy as np# Global styles
+BUTTON_STYLE = {
+    "font": ("Arial", 16),
+    "bg": "#4A90E2",
+    "fg": "white",
+    "activebackground": "#5FA3E8",
+    "activeforeground": "white",
+    "width": 20,
+    "height": 2
+}
+
+class BaseScreen(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        self.configure(bg="white")
+        self.answers = {}  # Dictionary to store answers
+
+    def set_background(self, image_path):
+        try:
+            self.image = Image.open(image_path)
+            self.background_image = ImageTk.PhotoImage(self.image)
+            self.canvas = tk.Canvas(self, width=800, height=600)
+            self.canvas.pack(fill="both", expand=True)
+            self.bg_image = self.canvas.create_image(0, 0, image=self.background_image, anchor="nw")
+            self.canvas.bind("<Configure>", self._resize_image)
+        except FileNotFoundError:
+            print(f"Background image not found: {image_path}")
+
+    def _resize_image(self, event):
+        new_width = event.width
+        new_height = event.height
+        resized_image = self.image.resize((new_width, new_height), Image.LANCZOS)
+        self.background_image = ImageTk.PhotoImage(resized_image)
+        self.canvas.itemconfig(self.bg_image, image=self.background_image)
+
+class StartScreen(BaseScreen):
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+        self.configure(bg="white")
+
+        self.canvas = tk.Canvas(self, bg="white", highlightthickness=0)
+        self.canvas.pack(fill='both', expand=True)
+
+        self.set_background("gumball.png")
+
+        self.title_shadow = self.canvas.create_text(0, 0, text="Welcome to the Diagnostic Test",
+                                                    font=("Arial", 28, "bold"), fill="black")
+        self.title = self.canvas.create_text(0, 0, text="Welcome to the Diagnostic Test",
+                                             font=("Arial", 28, "bold"), fill="#FFD700")
+
+        self.start_button = tk.Button(self.canvas, text="Start",
+                                      command=lambda: controller.show_frame("StudentTeacherScreen"),
+                                      **BUTTON_STYLE)
+        self.start_button_window = self.canvas.create_window(0, 0, window=self.start_button)
+
+        self.canvas.bind("<Configure>", self._on_resize)
+
+    def _on_resize(self, event):
+        self._resize_image(event)
+        self._reposition_elements(event)
+
+    def _reposition_elements(self, event):
+        width = event.width
+        height = event.height
+
+        # Center the title and its shadow
+        self.canvas.coords(self.title_shadow, width / 2, height / 2 - 120)
+        self.canvas.coords(self.title, width / 2 - 2, height / 2 - 122)
+
+        # Center the start button
+        self.canvas.coords(self.start_button_window, width / 2, height / 2 + 120)
+    def set_background(self, image_path):
+        try:
+            self.image = Image.open(image_path)
+            self.background_image = ImageTk.PhotoImage(self.image)
+            self.bg_image = self.canvas.create_image(0, 0, image=self.background_image, anchor="nw")
+            self.canvas.bind("<Configure>", self._resize_image)
+        except FileNotFoundError:
+            print(f"Background image not found: {image_path}")
+
+    def _resize_image(self, event):
+        new_width = event.width
+        new_height = event.height
+        resized_image = self.image.resize((new_width, new_height), Image.LANCZOS)
+        self.background_image = ImageTk.PhotoImage(resized_image)
+        self.canvas.itemconfig(self.bg_image, image=self.background_image)
+        self._reposition_elements(event)
+class StudentTeacherScreen(BaseScreen):
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+        self.configure(bg="white")
+
+        label = tk.Label(self, text="Are you a student or a teacher?\nهل أنت طالب أم مدرس؟", font=("Arial", 24), bg="white")
+        label.pack(pady=10, padx=10)
+
+        button_frame = tk.Frame(self, bg="white")
+        button_frame.pack(expand=True, fill=tk.BOTH)
+
+        student_button = tk.Button(button_frame, text="Student\nطالب",
+                                   command=lambda: controller.show_frame("StudentLevelScreen"),
+                                   **BUTTON_STYLE)
+        student_button.pack(pady=20)
+
+        teacher_button = tk.Button(button_frame, text="Teacher\nمدرس",
+                                   command=lambda: messagebox.showinfo("Teacher", "Teacher functionality not implemented yet."),
+                                   **BUTTON_STYLE)
+        teacher_button.pack(pady=10)
+
+        back_button = tk.Button(self, text="Back\nعودة",
+                                command=lambda: controller.show_frame("StartScreen"),
+                                **BUTTON_STYLE)
+        back_button.pack(side=tk.BOTTOM, anchor=tk.SW, padx=10, pady=10)
+
+class StudentLevelScreen(BaseScreen):
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+
+        label = tk.Label(self, text="Select your level:\nاختر مستواك:", font=("Arial", 24))
+        label.pack(pady=10, padx=10)
+
+        common_core_button = tk.Button(self, text="Common Core\nجذع مشترك",
+                                       command=lambda: controller.show_frame("InfoScreen"),
+                                       **BUTTON_STYLE)
+        common_core_button.pack(pady=10)
+
+        first_bac_button = tk.Button(self, text="First Bac\nالسنة الأولى باكالوريا",
+                                     command=lambda: controller.show_frame("FirstBacScreen"),
+                                     **BUTTON_STYLE)
+        first_bac_button.pack(pady=10)
+
+        second_bac_button = tk.Button(self, text="Second Bac\nالسنة الثانية باكالوريا",
+                                      command=lambda: controller.show_frame("SecondBacScreen"),
+                                      **BUTTON_STYLE)
+        second_bac_button.pack(pady=10)
+
+        back_button = tk.Button(self, text="Back\nعودة",
+                                command=lambda: controller.show_frame("StudentTeacherScreen"),
+                                **BUTTON_STYLE)
+        back_button.pack(pady=10)
+
+class InfoScreen(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, bg="white")
+        self.controller = controller
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(9, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+
+        title_en = tk.Label(self, text="Enter your information", bg="white", font=("Arial", 20, "bold"))
+        title_en.grid(row=1, column=0, columnspan=2, pady=(20, 5))
+
+        title_ar = tk.Label(self, text="أدخل معلوماتك", bg="white", font=("Arial", 20, "bold"))
+        title_ar.grid(row=2, column=0, columnspan=2, pady=(5, 20))
+
+        input_frame = tk.Frame(self, bg="white")
+        input_frame.grid(row=3, column=0, columnspan=2, pady=20)
+
+        label_style = {"bg": "white", "font": ("Arial", 14), "pady": 5}
+        entry_style = {"font": ("Arial", 14), "width": 30, "relief": tk.SOLID, "borderwidth": 1}
+
+        tk.Label(input_frame, text="Name:", **label_style).grid(row=0, column=0, sticky="e", padx=(0, 10))
+        self.name_entry = tk.Entry(input_frame, **entry_style)
+        self.name_entry.grid(row=0, column=1, pady=10)
+
+        tk.Label(input_frame, text="Massar:", **label_style).grid(row=1, column=0, sticky="e", padx=(0, 10))
+        self.massar_entry = tk.Entry(input_frame, **entry_style)
+        self.massar_entry.grid(row=1, column=1, pady=10)
+
+        tk.Label(input_frame, text="Class:", **label_style).grid(row=2, column=0, sticky="e", padx=(0, 10))
+        self.class_entry = tk.Entry(input_frame, **entry_style)
+        self.class_entry.grid(row=2, column=1, pady=10)
+
+        tk.Label(input_frame, text="Teacher's e-mail:", **label_style).grid(row=3, column=0, sticky="e", padx=(0, 10))
+        self.teacher_email_entry = tk.Entry(input_frame, **entry_style)
+        self.teacher_email_entry.grid(row=3, column=1, pady=10)
+
+        button_style = {"font": ("Arial", 16), "bg": "#4A90E2", "fg": "white", "activebackground": "#5FA3E8", "activeforeground": "white"}
+        button_size = {"width": 20, "height": 2}
+
+        start_button = tk.Button(self, text="Start Test", command=self.start_test, **button_style, **button_size)
+        start_button.grid(row=7, column=0, columnspan=2, pady=20)
+
+        back_button = tk.Button(self, text="Back", command=lambda: controller.show_frame("StudentLevelScreen"),
+                                **button_style, **button_size)
+        back_button.grid(row=8, column=0, sticky="sw", padx=20, pady=20)
+
+    def start_test(self):
+        self.controller.set_user_info(self.get_user_info())
+        self.controller.show_frame("ReadingComprehensionScreen")
+
+    def get_user_info(self):
+        return {
+            "Name": self.name_entry.get(),
+            "Massar": self.massar_entry.get(),
+            "Class": self.class_entry.get(),
+            "Teacher's e-mail": self.teacher_email_entry.get()
+        }
+
+class FirstBacScreen(BaseScreen):
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+
+        title = tk.Label(self, text="First Bac", bg="white", font=("Arial", 20, "bold"))
+        title.pack(pady=20)
+
+        start_button = tk.Button(self, text="Start Test",
+                                 command=lambda: controller.show_frame("CommonCoreDiagnosticTestScreen"),
+                                 **BUTTON_STYLE)
+        start_button.pack(pady=10)
+
+        back_button = tk.Button(self, text="Back",
+                                command=lambda: controller.show_frame("StudentLevelScreen"),
+                                **BUTTON_STYLE)
+        back_button.pack(pady=10)
+
+class SecondBacScreen(BaseScreen):
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+
+        title = tk.Label(self, text="Second Bac", bg="white", font=("Arial", 20, "bold"))
+        title.pack(pady=20)
+
+        start_button = tk.Button(self, text="Start Test",
+                                 command=lambda: controller.show_frame("CommonCoreDiagnosticTestScreen"),
+                                 **BUTTON_STYLE)
+        start_button.pack(pady=10)
+
+        back_button = tk.Button(self, text="Back",
+                                command=lambda: controller.show_frame("StudentLevelScreen"),
+                                **BUTTON_STYLE)
+        back_button.pack(pady=10)
+
+
+class ReadingComprehensionScreen(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        self.answer_vars = []
+        self.score = 0
+        self.total_questions = 0
+        self.question_results = {}
+        self.answers = {}
+
+        # Use a softer background color
+        self.bg_color = "#F0F8FF"  # Alice Blue
+        self.fg_color = "#2C3E50"  # Dark Blue
+        self.configure(bg=self.bg_color)
+
+        # Create a main frame to hold all content
+        self.main_frame = tk.Frame(self, bg=self.bg_color)
+        self.main_frame.pack(expand=True, fill="both")
+
+        # Create a canvas with scrollbar
+        self.canvas = tk.Canvas(self.main_frame, bg=self.bg_color, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas, bg=self.bg_color)
+
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Center-align the title
+        title = tk.Label(self.scrollable_frame, text="Reading and Comprehension",
+                         font=("Helvetica", 28, "bold"), bg=self.bg_color, fg=self.fg_color)
+        title.pack(pady=30)
+
+        # Center-align the text and increase font size
+        text = "This is Mary. She's a musician. She's tall and beautiful. She works in a studio and a concert hall. She plays the piano. Every day she gets up at nine o'clock in the morning. She takes a shower and gets dressed. She drinks a cup of tea and eats some toast. At ten o'clock, she takes a taxi to the studio.\n\nIn the studio, she plays the piano. She writes new songs and makes CDs. At one o'clock, she goes to the restaurant. She eats lunch with her friends. At three o'clock, she goes to the studio again. She plays more music and sings. At six o'clock, she goes home and has dinner.\n\nShe goes to the concert hall at eight o'clock. She plays her music for lots of people. They like her songs. She goes home at eleven o'clock. She is very tired and she goes to bed."
+
+        text_label = tk.Label(self.scrollable_frame, text=text, wraplength=800,
+                              justify="center", font=("Arial", 16), bg=self.bg_color, fg=self.fg_color)
+        text_label.pack(padx=40, pady=30)
+
+        # Questions remain the same
+        self.questions = [
+            {
+                "section": "Reading Comprehension",
+                "subsections": [
+                    {
+                        "instruction": "A. Are these sentences true or false? Select T or F:",
+                        "questions": [
+                            {"question": "1. Mary drinks coffee in the morning", "options": ["True", "False"], "correct": "False"},
+                            {"question": "2. She rides a bike to work", "options": ["True", "False"], "correct": "False"},
+                            {"question": "3. People enjoy listening to her songs", "options": ["True", "False"], "correct": "True"}
+                        ]
+                    },
+                    {
+                        "instruction": "B. Answer these questions:",
+                        "questions": [
+                            {"question": "1. Where does Mary work?",
+                             "options": ["Studio and concert hall", "Office and home", "Restaurant and cafe", "School and library"], "correct": "Studio and concert hall"},
+                            {"question": "2. What does she do in the studio?",
+                             "options": ["Plays the piano and writes songs", "Teaches music", "Cooks meals", "Designs clothes"], "correct": "Plays the piano and writes songs"}
+                        ]
+                    },
+                    {
+                        "instruction": "C. What do the underlined words in the text refer to?",
+                        "questions": [
+                            {"question": "She:", "options": ["Mary", "The piano", "The studio", "The concert hall"], "correct": "Mary"},
+                            {"question": "They:", "options": ["The people", "The songs", "The instruments", "The taxis"], "correct": "The people"}
+                        ]
+                    }
+                ]
+            }
+        ]
+
+        self.display_questions()
+
+        self.button_frame = tk.Frame(self, bg=self.bg_color)
+        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+
+        self.back_button = tk.Button(self.button_frame, text="Back", command=lambda: controller.show_frame("InfoScreen"),
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.back_button.pack(side=tk.LEFT)
+
+        self.next_button = tk.Button(self.button_frame, text="Next", command=self.on_next,
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.next_button.pack(side=tk.RIGHT)
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+    def display_questions(self):
+        for section in self.questions:
+            for subsection in section['subsections']:
+                instruction = tk.Label(self.scrollable_frame, text=subsection['instruction'],
+                                       font=("Helvetica", 20, "bold"), bg=self.bg_color, fg=self.fg_color)
+                instruction.pack(pady=(40, 20))
+
+                for question in subsection['questions']:
+                    q_frame = tk.Frame(self.scrollable_frame, bg=self.bg_color)
+                    q_frame.pack(pady=10, fill='x', padx=40)
+
+                    q_label = tk.Label(q_frame, text=question['question'],
+                                       font=("Arial", 16), bg=self.bg_color, fg=self.fg_color)
+                    q_label.pack(anchor='w', pady=(0, 10))
+
+                    var = tk.StringVar(value="")
+                    self.answer_vars.append(var)
+
+                    for option in question['options']:
+                        rb = tk.Radiobutton(q_frame, text=option, variable=var, value=option,
+                                            font=("Arial", 14), bg=self.bg_color, fg=self.fg_color,
+                                            selectcolor=self.bg_color)
+                        rb.pack(anchor='w', padx=20, pady=2)
+
+                tk.Frame(self.scrollable_frame, height=2, bg="#CCCCCC").pack(fill='x', padx=40, pady=20)
+
+    def submit_test(self):
+        for i, var in enumerate(self.answer_vars):
+            question = self.get_question_text(i)
+            answer = var.get()
+            correct_answer = self.controller.get_correct_answer(question)
+            print(f"Submitting: Question: {question}, User Answer: {answer}, Correct Answer: {correct_answer}")
+            self.controller.set_answer(question, answer)
+        print(f"Submitted answers from ReadingComprehensionScreen")
+
+    def on_next(self):
+        self.submit_test()
+        self.controller.show_frame("Exercise1Screen")
+    def get_question_text(self, index):
+        count = 0
+        for section in self.questions:
+            for subsection in section['subsections']:
+                for question in subsection['questions']:
+                    if count == index:
+                        return question['question']
+                    count += 1
+        return f"Question {index + 1}"
+
+
+class Exercise1Screen(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        self.answer_vars = []
+        self.score = 0
+        self.total_questions = 0
+        self.question_results = {}
+
+        # Background and foreground colors
+        self.bg_color = "#F0F8FF"  # Alice Blue
+        self.fg_color = "#2C3E50"  # Dark Blue
+        self.configure(bg=self.bg_color)
+
+        # Create a main frame to hold all content
+        self.main_frame = tk.Frame(self, bg=self.bg_color)
+        self.main_frame.pack(expand=True, fill="both")
+
+        # Create a canvas with scrollbar
+        self.canvas = tk.Canvas(self.main_frame, bg=self.bg_color, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas, bg=self.bg_color)
+
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Title for the screen
+        title = tk.Label(self.scrollable_frame, text="Language: Exercise 1",
+                         font=("Helvetica", 28, "bold"), bg=self.bg_color, fg=self.fg_color)
+        title.pack(pady=30)
+
+        # Exercise questions
+        self.questions = [
+            {
+                "section": "Language",
+                "subsections": [
+                    {
+                        "instruction": "1. Choose the right answer:",
+                        "questions": [
+                            {"question": "a) Karima  ............... a teacher of English.", "options": ["is", "are"], "correct": "is"},
+                            {"question": "b)  ……………….. you American?", "options": ["is", "are", "am"], "correct": "are"},
+                            {"question": "c) ....................... am good at English.", "options": ["I", "He", "They"], "correct": "I"},
+                            {"question": "d) Hanan ..................... got two brothers.", "options": ["have", "has", "having"], "correct": "has"},
+                            {"question": "e) I live in ............................ Chichaoua city.", "options": ["the", "an", "0"], "correct": "0"},
+                            {"question": "f) My father has a car.……… car is red.", "options": ["My", "his", "her"], "correct": "his"}
+                        ]
+                    }
+                ]
+            }
+        ]
+
+        self.display_questions()
+
+        # Navigation buttons
+        self.button_frame = tk.Frame(self, bg=self.bg_color)
+        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+
+        self.back_button = tk.Button(self.button_frame, text="Back", command=lambda: controller.show_frame("ReadingComprehensionScreen"),
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.back_button.pack(side=tk.LEFT)
+
+        self.next_button = tk.Button(self.button_frame, text="Next", command=self.on_next,
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.next_button.pack(side=tk.RIGHT)
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+    def display_questions(self):
+        for section in self.questions:
+            for subsection in section['subsections']:
+                instruction = tk.Label(self.scrollable_frame, text=subsection['instruction'],
+                                       font=("Helvetica", 20, "bold"), bg=self.bg_color, fg=self.fg_color)
+                instruction.pack(pady=(40, 20))
+
+                for question in subsection['questions']:
+                    q_frame = tk.Frame(self.scrollable_frame, bg=self.bg_color)
+                    q_frame.pack(pady=10, fill='x', padx=40)
+
+                    q_label = tk.Label(q_frame, text=question['question'],
+                                       font=("Arial", 16), bg=self.bg_color, fg=self.fg_color)
+                    q_label.pack(anchor='w', pady=(0, 10))
+
+                    var = tk.StringVar(value="")
+                    self.answer_vars.append(var)
+
+                    for option in question['options']:
+                        rb = tk.Radiobutton(q_frame, text=option, variable=var, value=option,
+                                            font=("Arial", 14), bg=self.bg_color, fg=self.fg_color,
+                                            selectcolor=self.bg_color)
+                        rb.pack(anchor='w', padx=20, pady=2)
+
+                tk.Frame(self.scrollable_frame, height=2, bg="#CCCCCC").pack(fill='x', padx=40, pady=20)
+
+    def on_next(self):
+        self.submit_test()
+        self.controller.show_frame("Exercise2Screen")
+
+    def submit_test(self):
+        for i, var in enumerate(self.answer_vars):
+            question = self.get_question_text(i)
+            answer = var.get()
+            self.controller.set_answer(question, answer)
+        print(f"Submitted answers from {self.__class__.__name__}")  # Debug print
+
+    def get_question_text(self, index):
+        count = 0
+        for section in self.questions:
+            for subsection in section['subsections']:
+                for question in subsection['questions']:
+                    if count == index:
+                        return question['question']
+                    count += 1
+        return f"Question {index + 1}"
+
+
+class Exercise2Screen(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        self.answer_vars = []
+        self.score = 0
+        self.total_questions = 0
+        self.question_results = {}
+
+        # Background and foreground colors
+        self.bg_color = "#F0F8FF"  # Alice Blue
+        self.fg_color = "#2C3E50"  # Dark Blue
+        self.configure(bg=self.bg_color)
+
+        # Create a main frame to hold all content
+        self.main_frame = tk.Frame(self, bg=self.bg_color)
+        self.main_frame.pack(expand=True, fill="both")
+
+        # Create a canvas with scrollbar
+        self.canvas = tk.Canvas(self.main_frame, bg=self.bg_color, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas, bg=self.bg_color)
+
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Title for the screen
+        title = tk.Label(self.scrollable_frame, text="Language: Exercise 2",
+                         font=("Helvetica", 28, "bold"), bg=self.bg_color, fg=self.fg_color)
+        title.pack(pady=30)
+
+        # Exercise questions
+        self.questions = [
+            {
+                "instruction": "2. Write the numbers in letters:",
+                "questions": [
+                    {"question": "12", "correct": "twelve"},
+                    {"question": "25", "correct": "twenty-five"},
+                    {"question": "38", "correct": "thirty-eight"}
+                ]
+            }
+        ]
+
+        self.display_questions()
+
+        # Navigation buttons
+        self.button_frame = tk.Frame(self, bg=self.bg_color)
+        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+
+        self.back_button = tk.Button(self.button_frame, text="Back", command=lambda: controller.show_frame("Exercise1Screen"),
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.back_button.pack(side=tk.LEFT)
+
+        self.next_button = tk.Button(self.button_frame, text="Next", command=self.on_next,
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.next_button.pack(side=tk.RIGHT)
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+    def display_questions(self):
+        for section in self.questions:
+            instruction = tk.Label(self.scrollable_frame, text=section['instruction'],
+                                   font=("Helvetica", 20, "bold"), bg=self.bg_color, fg=self.fg_color)
+            instruction.pack(pady=(40, 20))
+
+            for question in section['questions']:
+                q_frame = tk.Frame(self.scrollable_frame, bg=self.bg_color)
+                q_frame.pack(pady=10, fill='x', padx=40)
+
+                q_label = tk.Label(q_frame, text=question['question'],
+                                   font=("Arial", 16), bg=self.bg_color, fg=self.fg_color)
+                q_label.pack(anchor='w', pady=(0, 10))
+
+                var = tk.StringVar(value="")
+                self.answer_vars.append(var)
+
+                entry = tk.Entry(q_frame, textvariable=var, font=("Arial", 14), width=30)
+                entry.pack(anchor='w', padx=20, pady=2)
+
+            tk.Frame(self.scrollable_frame, height=2, bg="#CCCCCC").pack(fill='x', padx=40, pady=20)
+
+    def on_next(self):
+        self.submit_test()
+        self.controller.show_frame("Exercise3Screen")
+
+    def submit_test(self):
+        for i, var in enumerate(self.answer_vars):
+            question = self.get_question_text(i)
+            answer = var.get()
+            self.controller.set_answer(question, answer)
+        print(f"Submitted answers from {self.__class__.__name__}")  # Debug print
+
+    def get_question_text(self, index):
+        count = 0
+        for section in self.questions:
+            for question in section['questions']:
+                if count == index:
+                    return question['question']
+                count += 1
+        return f"Question {index + 1}"
+
+class Exercise3Screen(BaseScreen):
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+        self.answer_vars = []
+        self.answers = {}
+        self.score = 0
+        self.total_questions = 0
+        self.question_results = {}
+
+        # Use a softer background color
+        self.bg_color = "#F0F8FF"  # Alice Blue
+        self.fg_color = "#2C3E50"  # Dark Blue
+        self.configure(bg=self.bg_color)
+
+        # Create a main frame to hold all content
+        self.main_frame = tk.Frame(self, bg=self.bg_color)
+        self.main_frame.pack(expand=True, fill="both")
+
+        # Create a canvas with scrollbar
+        self.canvas = tk.Canvas(self.main_frame, bg=self.bg_color, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas, bg=self.bg_color)
+
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Center-align the title
+        title = tk.Label(self.scrollable_frame, text="Vocabulary: Exercise 3",
+                         font=("Helvetica", 28, "bold"), bg=self.bg_color, fg=self.fg_color)
+        title.pack(pady=30)
+
+        self.questions = [
+            {
+                "instruction": "3. Write the words in numbers:",
+                "questions": [
+                    {"question": "fifty-six", "correct": "56"},
+                    {"question": "eighty-three", "correct": "83"},
+                    {"question": "ninety-seven", "correct": "97"}
+                ]
+            }
+        ]
+
+        self.display_questions()
+
+        self.button_frame = tk.Frame(self, bg=self.bg_color)
+        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+
+        self.back_button = tk.Button(self.button_frame, text="Back", command=lambda: controller.show_frame("Exercise2Screen"),
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.back_button.pack(side=tk.LEFT)
+
+        self.next_button = tk.Button(self.button_frame, text="Next", command=self.on_next,
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.next_button.pack(side=tk.RIGHT)
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+    def display_questions(self):
+        for section in self.questions:
+            instruction = tk.Label(self.scrollable_frame, text=section['instruction'],
+                                   font=("Helvetica", 22, "bold"), bg=self.bg_color, fg=self.fg_color)
+            instruction.pack(pady=(40, 20))
+
+            for i, question in enumerate(section['questions']):
+                q_frame = tk.Frame(self.scrollable_frame, bg=self.bg_color)
+                q_frame.pack(pady=20, fill='x', padx=60)
+
+                q_label = tk.Label(q_frame, text=question['question'],
+                                   font=("Arial", 18), bg=self.bg_color, fg=self.fg_color)
+                q_label.pack(side=tk.LEFT, pady=(0, 10))
+
+                var = tk.StringVar()
+                self.answer_vars.append(var)
+                answer_entry = tk.Entry(q_frame, font=("Arial", 18), width=10, textvariable=var)
+                answer_entry.pack(side=tk.RIGHT, padx=20)
+
+            tk.Frame(self.scrollable_frame, height=2, bg="#CCCCCC").pack(fill='x', padx=40, pady=20)
+    def on_next(self):
+        self.submit_test()
+        self.controller.show_frame("Exercise4Screen")
+
+
+    def submit_test(self):
+        for i, var in enumerate(self.answer_vars):
+            question = self.get_question_text(i)
+            answer = var.get()
+            self.controller.set_answer(question, answer)
+        print(f"Submitted answers from {self.__class__.__name__}")  # Debug print
+
+    def get_question_text(self, index):
+        count = 0
+        for section in self.questions:
+            for subsection in section.get('subsections', []):
+                for question in subsection['questions']:
+                    if count == index:
+                        return question['question']
+                    count += 1
+            for question in section.get('questions', []):
+                if count == index:
+                    return question['question']
+                count += 1
+            if 'table' in section and count == index:
+                return f"Question {index + 1}"
+            count += 1
+        return f"Question {index + 1}"
+class Exercise4Screen(BaseScreen):
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+        self.answer_vars = []
+        self.answers = {}
+        self.score = 0
+        self.total_questions = 0
+        self.question_results = {}
+
+        # Use a softer background color
+        self.bg_color = "#F0F8FF"  # Alice Blue
+        self.fg_color = "#2C3E50"  # Dark Blue
+        self.configure(bg=self.bg_color)
+
+        # Create a main frame to hold all content
+        self.main_frame = tk.Frame(self, bg=self.bg_color)
+        self.main_frame.pack(expand=True, fill="both")
+
+        # Create a canvas with scrollbar
+        self.canvas = tk.Canvas(self.main_frame, bg=self.bg_color, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas, bg=self.bg_color)
+
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Center-align the title
+        title = tk.Label(self.scrollable_frame, text="Vocabulary: Exercise 4",
+                         font=("Helvetica", 28, "bold"), bg=self.bg_color, fg=self.fg_color)
+        title.pack(pady=30)
+
+        self.questions = [
+            {
+                "instruction": "4. Fill in the table with the given words:",
+                "words": "teacher, pen, apple, doctor, ruler, salad, nurse, pencil, banana",
+                "table": {
+                    "headers": ["Jobs", "School Objects", "Food"],
+                    "correct": [
+                        ["teacher", "doctor", "nurse"],
+                        ["pen", "ruler", "pencil"],
+                        ["apple", "salad", "banana"]
+                    ]
+                }
+            }
+        ]
+
+        self.display_questions()
+
+        self.button_frame = tk.Frame(self, bg=self.bg_color)
+        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+
+        self.back_button = tk.Button(self.button_frame, text="Back", command=lambda: controller.show_frame("Exercise3Screen"),
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.back_button.pack(side=tk.LEFT)
+
+        self.next_button = tk.Button(self.button_frame, text="Next", command=self.on_next,
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.next_button.pack(side=tk.RIGHT)
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+    def display_questions(self):
+        for section in self.questions:
+            instruction = tk.Label(self.scrollable_frame, text=section['instruction'],
+                                   font=("Helvetica", 22, "bold"), bg=self.bg_color, fg=self.fg_color)
+            instruction.pack(pady=(40, 20))
+
+            words = tk.Label(self.scrollable_frame, text=section['words'],
+                             font=("Arial", 18), bg=self.bg_color, fg=self.fg_color, wraplength=800)
+            words.pack(pady=(0, 30))
+
+            table_frame = tk.Frame(self.scrollable_frame, bg=self.bg_color)
+            table_frame.pack(pady=20, padx=40)
+
+            headers = section['table']['headers']
+            for col, header in enumerate(headers):
+                header_label = tk.Label(table_frame, text=header, font=("Arial", 18, "bold"),
+                                        bg="#3498DB", fg="white", padx=15, pady=10, width=15)
+                header_label.grid(row=0, column=col, sticky="nsew", padx=5, pady=5)
+
+            for row in range(3):
+                for col in range(len(headers)):
+                    var = tk.StringVar()
+                    self.answer_vars.append(var)
+                    entry = tk.Entry(table_frame, font=("Arial", 16), width=15, textvariable=var)
+                    entry.grid(row=row + 1, column=col, padx=5, pady=10, ipady=5)
+
+        tk.Label(self.scrollable_frame, text="Fill in the table with the given words",
+                 font=("Arial", 16, "italic"), bg=self.bg_color, fg=self.fg_color).pack(pady=(20, 0))
+    def on_next(self):
+        self.submit_test()
+        self.controller.show_frame("Exercise5Screen")
+
+    def submit_test(self):
+        for i, header in enumerate(self.questions[0]['table']['headers']):
+            for j, var in enumerate(self.answer_vars[i * 3:(i + 1) * 3]):
+                question = f"Exercise 4 - {header} {j + 1}"
+                answer = var.get()
+                self.controller.set_answer(question, answer)
+        print(f"Submitted answers from {self.__class__.__name__}")
+    def get_question_text(self, index):
+        count = 0
+        for section in self.questions:
+            for subsection in section.get('subsections', []):
+                for question in subsection['questions']:
+                    if count == index:
+                        return question['question']
+                    count += 1
+            for question in section.get('questions', []):
+                if count == index:
+                    return question['question']
+                count += 1
+            if 'table' in section and count == index:
+                return f"Question {index + 1}"
+            count += 1
+        return f"Question {index + 1}"
+class Exercise5Screen(BaseScreen):
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+        self.answer_vars = []
+        self.score = 0
+        self.total_questions = 0
+        self.question_results = {}
+
+        # Use a softer background color
+        self.bg_color = "#F0F8FF"  # Alice Blue
+        self.fg_color = "#2C3E50"  # Dark Blue
+        self.configure(bg=self.bg_color)
+
+        # Create a main frame to hold all content
+        self.main_frame = tk.Frame(self, bg=self.bg_color)
+        self.main_frame.pack(expand=True, fill="both")
+
+        # Create a canvas with scrollbar
+        self.canvas = tk.Canvas(self.main_frame, bg=self.bg_color, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas, bg=self.bg_color)
+
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Center-align the title
+        title = tk.Label(self.scrollable_frame, text="Vocabulary: Exercise 5",
+                         font=("Helvetica", 28, "bold"), bg=self.bg_color, fg=self.fg_color)
+        title.pack(pady=30)
+
+        self.questions = [
+            {
+                "instruction": "5. Complete the days of the week:",
+                "table": {
+                    "given": ["Monday", "Wednesday", "Friday", "Sunday"],
+                    "correct": ["Tuesday", "Thursday", "Saturday"]
+                }
+            }
+        ]
+
+        self.display_questions()
+
+        self.button_frame = tk.Frame(self, bg=self.bg_color)
+        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+
+        self.back_button = tk.Button(self.button_frame, text="Back", command=lambda: controller.show_frame("Exercise4Screen"),
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.back_button.pack(side=tk.LEFT)
+
+        self.next_button = tk.Button(self.button_frame, text="Next", command=self.on_next,
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.next_button.pack(side=tk.RIGHT)
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+    def display_questions(self):
+        for section in self.questions:
+            instruction = tk.Label(self.scrollable_frame, text=section['instruction'],
+                                   font=("Helvetica", 22, "bold"), bg=self.bg_color, fg=self.fg_color)
+            instruction.pack(pady=(40, 30))
+
+            days_frame = tk.Frame(self.scrollable_frame, bg=self.bg_color)
+            days_frame.pack(pady=20, padx=40)
+
+            given_days = section['table']['given']
+            correct_days = section['table']['correct']
+
+            all_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+            for i, day in enumerate(all_days):
+                day_frame = tk.Frame(days_frame, bg=self.bg_color)
+                day_frame.pack(pady=10)
+
+                if day in given_days:
+                    day_label = tk.Label(day_frame, text=day, font=("Arial", 18),
+                                         bg="#3498DB", fg="white", padx=10, pady=5, width=15)
+                    day_label.pack(side=tk.LEFT)
+                else:
+                    var = tk.StringVar()
+                    self.answer_vars.append(var)
+                    day_entry = tk.Entry(day_frame, font=("Arial", 18), width=15, textvariable=var)
+                    day_entry.pack(side=tk.LEFT)
+
+                if i < 6:  # Don't add arrow after the last day
+                    arrow_label = tk.Label(day_frame, text="→", font=("Arial", 18, "bold"),
+                                           bg=self.bg_color, fg=self.fg_color, padx=10)
+                    arrow_label.pack(side=tk.LEFT)
+
+        tk.Label(self.scrollable_frame, text="Fill in the missing days of the week",
+                 font=("Arial", 16, "italic"), bg=self.bg_color, fg=self.fg_color).pack(pady=(20, 0))
+    def on_next(self):
+        self.submit_test()
+        self.controller.show_frame("Exercise6Screen")
+
+    def submit_test(self):
+        given_days = self.questions[0]['table']['given']
+        correct_days = self.questions[0]['table']['correct']
+        all_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+        for i, day in enumerate(all_days):
+            if day not in given_days:
+                question = f"Exercise 5 - Day {all_days.index(day) + 1}"
+                answer = self.answer_vars[correct_days.index(day)].get()
+                self.controller.set_answer(question, (answer, day))
+        print(f"Submitted answers from {self.__class__.__name__}")
+
+
+    def get_question_text(self, index):
+        count = 0
+        for section in self.questions:
+            for subsection in section.get('subsections', []):
+                for question in subsection['questions']:
+                    if count == index:
+                        return question['question']
+                    count += 1
+            for question in section.get('questions', []):
+                if count == index:
+                    return question['question']
+                count += 1
+            if 'table' in section and count == index:
+                return f"Question {index + 1}"
+            count += 1
+        return f"Question {index + 1}"
+class Exercise6Screen(BaseScreen):
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+        self.answer_vars = []
+        self.score = 0
+        self.total_questions = 0
+        self.question_results = {}
+
+        # Use a softer background color
+        self.bg_color = "#F0F8FF"  # Alice Blue
+        self.fg_color = "#2C3E50"  # Dark Blue
+        self.configure(bg=self.bg_color)
+
+        # Create a main frame to hold all content
+        self.main_frame = tk.Frame(self, bg=self.bg_color)
+        self.main_frame.pack(expand=True, fill="both")
+
+        # Create a canvas with scrollbar
+        self.canvas = tk.Canvas(self.main_frame, bg=self.bg_color, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas, bg=self.bg_color)
+
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Center-align the title
+        title = tk.Label(self.scrollable_frame, text="Vocabulary: Exercise 6",
+                         font=("Helvetica", 28, "bold"), bg=self.bg_color, fg=self.fg_color)
+        title.pack(pady=30)
+
+        self.questions = [
+            {
+                "instruction": "6. Complete the months of the year:",
+                "table": {
+                    "given": ["January", "March", "May", "July", "September", "November"],
+                    "correct": ["February", "April", "June", "August", "October", "December"]
+                }
+            }
+        ]
+
+        self.display_questions()
+
+        self.button_frame = tk.Frame(self, bg=self.bg_color)
+        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+
+        self.back_button = tk.Button(self.button_frame, text="Back", command=lambda: controller.show_frame("Exercise5Screen"),
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.back_button.pack(side=tk.LEFT)
+
+        self.next_button = tk.Button(self.button_frame, text="Next", command=self.on_next,
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.next_button.pack(side=tk.RIGHT)
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+    def display_questions(self):
+        for section in self.questions:
+            instruction = tk.Label(self.scrollable_frame, text=section['instruction'],
+                                   font=("Helvetica", 22, "bold"), bg=self.bg_color, fg=self.fg_color)
+            instruction.pack(pady=(40, 30))
+
+            months_frame = tk.Frame(self.scrollable_frame, bg=self.bg_color)
+            months_frame.pack(pady=20, padx=40)
+
+            given_months = section['table']['given']
+            correct_months = section['table']['correct']
+
+            all_months = ['January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December']
+
+            for i, month in enumerate(all_months):
+                month_frame = tk.Frame(months_frame, bg=self.bg_color)
+                month_frame.pack(pady=10)
+
+                if month in given_months:
+                    month_label = tk.Label(month_frame, text=month, font=("Arial", 18),
+                                           bg="#3498DB", fg="white", padx=10, pady=5, width=15)
+                    month_label.pack(side=tk.LEFT)
+                else:
+                    var = tk.StringVar()
+                    self.answer_vars.append(var)
+                    month_entry = tk.Entry(month_frame, font=("Arial", 18), width=15, textvariable=var)
+                    month_entry.pack(side=tk.LEFT)
+
+                if i < 11:  # Don't add arrow after the last month
+                    arrow_label = tk.Label(month_frame, text="→", font=("Arial", 18, "bold"),
+                                           bg=self.bg_color, fg=self.fg_color, padx=10)
+                    arrow_label.pack(side=tk.LEFT)
+
+        tk.Label(self.scrollable_frame, text="Fill in the missing months of the year",
+                 font=("Arial", 16, "italic"), bg=self.bg_color, fg=self.fg_color).pack(pady=(20, 0))
+
+    def on_next(self):
+        self.submit_test()
+        self.controller.show_frame("Exercise7Screen")
+
+    def submit_test(self):
+        given_months = self.questions[0]['table']['given']
+        correct_months = self.questions[0]['table']['correct']
+        all_months = ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December']
+
+        for i, month in enumerate(all_months):
+            if month not in given_months:
+                question = f"Exercise 6 - Month {all_months.index(month) + 1}"
+                answer = self.answer_vars[correct_months.index(month)].get()
+                self.controller.set_answer(question, (answer, month))
+        print(f"Submitted answers from {self.__class__.__name__}")
+    def get_question_text(self, index):
+        count = 0
+        for section in self.questions:
+            for subsection in section.get('subsections', []):
+                for question in subsection['questions']:
+                    if count == index:
+                        return question['question']
+                    count += 1
+            for question in section.get('questions', []):
+                if count == index:
+                    return question['question']
+                count += 1
+            if 'table' in section and count == index:
+                return f"Question {index + 1}"
+            count += 1
+        return f"Question {index + 1}"
+
+
+class Exercise7Screen(BaseScreen):
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+        self.answer_vars = []
+        self.score = 0
+        self.total_questions = 0
+        self.question_results = {}
+
+        # Use a softer background color
+        self.bg_color = "#F0F8FF"  # Alice Blue
+        self.fg_color = "#2C3E50"  # Dark Blue
+        self.configure(bg=self.bg_color)
+
+        # Create a main frame to hold all content
+        self.main_frame = tk.Frame(self, bg=self.bg_color)
+        self.main_frame.pack(expand=True, fill="both")
+
+        # Create a canvas with scrollbar
+        self.canvas = tk.Canvas(self.main_frame, bg=self.bg_color, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas, bg=self.bg_color)
+
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Center-align the title
+        title = tk.Label(self.scrollable_frame, text="Communication",
+                         font=("Helvetica", 28, "bold"), bg=self.bg_color, fg=self.fg_color)
+        title.pack(pady=30)
+
+        self.questions = [
+            {
+                "instruction": "7. Match the questions with the answers:",
+                "questions": [
+                    {"question": "1. Do you speak English?", "correct": "c"},
+                    {"question": "2. How old is she?", "correct": "d"},
+                    {"question": "3. Does he like maths?", "correct": "b"},
+                    {"question": "4. What is your job?", "correct": "a"}
+                ],
+                "answers": [
+                    {"label": "a", "text": "I am a teacher"},
+                    {"label": "b", "text": "No, he doesn't"},
+                    {"label": "c", "text": "Yes, I do"},
+                    {"label": "d", "text": "She is fifteen"}
+                ]
+            }
+        ]
+
+        self.display_questions()
+
+        self.button_frame = tk.Frame(self, bg=self.bg_color)
+        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+
+        self.back_button = tk.Button(self.button_frame, text="Back", command=lambda: controller.show_frame("Exercise6Screen"),
+                                     font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.back_button.pack(side=tk.LEFT)
+
+        self.submit_button = tk.Button(self.button_frame, text="Submit All Answers", command=self.on_submit,
+                                       font=("Arial", 14), bg="#4CAF50", fg="white", padx=20, pady=10)
+        self.submit_button.pack(side=tk.RIGHT)
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+    def display_questions(self):
+        for section in self.questions:
+            instruction = tk.Label(self.scrollable_frame, text=section['instruction'],
+                                   font=("Helvetica", 22, "bold"), bg=self.bg_color, fg=self.fg_color)
+            instruction.pack(pady=(40, 30))
+
+            match_frame = tk.Frame(self.scrollable_frame, bg=self.bg_color)
+            match_frame.pack(pady=20, padx=40)
+
+            questions_frame = tk.Frame(match_frame, bg=self.bg_color)
+            questions_frame.pack(side=tk.LEFT, padx=20)
+
+            tk.Label(questions_frame, text="Questions", font=("Arial", 18, "bold"),
+                     bg="#3498DB", fg="white", padx=10, pady=5).pack(pady=(0, 15))
+
+            for q in section['questions']:
+                question_frame = tk.Frame(questions_frame, bg=self.bg_color)
+                question_frame.pack(fill='x', pady=10)
+
+                tk.Label(question_frame, text=q['question'], font=("Arial", 16),
+                         bg="#AED6F1", fg="#2C3E50", padx=10, pady=5, anchor='w').pack(side=tk.LEFT)
+
+                answer_var = tk.StringVar()
+                self.answer_vars.append(answer_var)
+                tk.Entry(question_frame, font=("Arial", 16), width=5, textvariable=answer_var).pack(side=tk.RIGHT, padx=5)
+
+            answers_frame = tk.Frame(match_frame, bg=self.bg_color)
+            answers_frame.pack(side=tk.LEFT, padx=20)
+
+            tk.Label(answers_frame, text="Answers", font=("Arial", 18, "bold"),
+                     bg="#3498DB", fg="white", padx=10, pady=5).pack(pady=(0, 15))
+
+            for a in section['answers']:
+                tk.Label(answers_frame, text=f"{a['label']}. {a['text']}", font=("Arial", 16),
+                         bg="#AED6F1", fg="#2C3E50", padx=10, pady=5, anchor='w').pack(fill='x', pady=10)
+
+        tk.Label(self.scrollable_frame, text="Enter the letter of the correct answer for each question",
+                 font=("Arial", 16, "italic"), bg=self.bg_color, fg=self.fg_color).pack(pady=(20, 0))
+
+    def on_submit(self):
+        self.submit_test()
+        self.controller.submit_test()
+
+
+    def submit_test(self):
+        for i, var in enumerate(self.answer_vars):
+            question = self.questions[0]['questions'][i]['question']
+            user_answer = var.get()
+            correct_answer = self.questions[0]['questions'][i]['correct']
+            self.controller.set_answer(f"7. {question}", (user_answer, correct_answer))
+
+    def get_question_text(self, index):
+        return self.questions[0]['questions'][index]['question']
+class ReportScreen(BaseScreen):
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+
+        title = tk.Label(self, text="Performance Report", font=("Arial", 24, "bold"), bg="white")
+        title.pack(pady=20)
+
+        self.graph_frame = tk.Frame(self, bg="white")
+        self.graph_frame.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
+
+        report_frame = tk.Frame(self, bg="white")
+        report_frame.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
+
+        self.report_content = tk.Text(report_frame, wrap=tk.WORD, font=("Arial", 14), bg="#E6F3FF", fg="#2C3E50")
+        self.report_content.pack(expand=True, fill=tk.BOTH)
+
+        back_button = tk.Button(self, text="Back", command=lambda: controller.show_frame("StartScreen"), **BUTTON_STYLE)
+        back_button.pack(pady=10)
+
+    def generate_report(self, user_info, user_answers, score):
+        correct_answers, total_questions = self.controller.calculate_score()
+        percentage = (correct_answers / total_questions) * 100 if total_questions > 0 else 0
+
+        self.report_content.config(state=tk.NORMAL)
+        self.report_content.delete(1.0, tk.END)
+        print("Generating report")
+        print(f"User info: {user_info}")
+        print(f"User answers: {user_answers}")
+        print(f"Score: {score}")
+        self.report_content.config(state=tk.NORMAL)
+        self.report_content.delete(1.0, tk.END)
+
+        self.report_content.insert(tk.END, "User Information:\n", "heading")
+        self.report_content.insert(tk.END, f"Name: {user_info.get('Name', 'N/A')}\n")
+        self.report_content.insert(tk.END, f"Massar: {user_info.get('Massar', 'N/A')}\n")
+        self.report_content.insert(tk.END, f"Class: {user_info.get('Class', 'N/A')}\n")
+        self.report_content.insert(tk.END, f"Teacher's e-mail: {user_info.get('Teacher\'s e-mail', 'N/A')}\n\n")
+
+        self.report_content.insert(tk.END, "Test Results:\n", "heading")
+        self.report_content.insert(tk.END, f"Score: {correct_answers}/{total_questions}\n")
+        self.report_content.insert(tk.END, f"Percentage: {percentage:.2f}%\n\n")
+
+        self.report_content.insert(tk.END, "Answers:\n", "heading")
+        self.create_and_send_doc_report(user_info, self.report_content.get("1.0", tk.END))
+
+        for section, frames in self.controller.sections.items():
+            self.report_content.insert(tk.END, f"\n{section}:\n", "subheading")
+            if isinstance(frames, list):
+                for frame_name in frames:
+                    self._insert_answers_for_frame(frame_name, user_answers)
+            else:
+                self._insert_answers_for_frame(frames, user_answers)
+
+        self.report_content.config(state=tk.DISABLED)
+
+        self.report_content.tag_configure("heading", font=("Arial", 16, "bold"))
+        self.report_content.tag_configure("subheading", font=("Arial", 14, "bold"))
+        self.report_content.tag_configure("correct", foreground="green")
+        self.report_content.tag_configure("wrong", foreground="red")
+        print(f"Total answers in report: {len(user_answers)}")
+        self.generate_performance_graphs(user_answers)
+
+    def generate_performance_graphs(self, user_answers):
+        exercises = list(self.controller.sections.keys())
+        scores = self.calculate_exercise_scores(user_answers)
+
+        print(f"Exercises for graphs: {exercises}")
+        print(f"Scores for graphs: {scores}")
+
+        fig = plt.figure(figsize=(15, 6))
+
+        # Bar chart
+        ax1 = fig.add_subplot(121)
+        x_pos = np.arange(len(exercises))
+        ax1.bar(x_pos, scores)
+        ax1.set_ylabel('Score (%)')
+        ax1.set_title('Performance by Exercise')
+        ax1.set_xticks(x_pos)
+        ax1.set_xticklabels(exercises, rotation=45, ha='right')
+        ax1.tick_params(axis='x', which='major', pad=5)
+        plt.setp(ax1.get_xticklabels(), fontsize=8)
+
+        # Radar chart
+        ax2 = fig.add_subplot(122, polar=True)
+        angles = [n / float(len(exercises)) * 2 * np.pi for n in range(len(exercises))]
+        angles += angles[:1]
+        scores_for_radar = scores + scores[:1]
+
+        ax2.plot(angles, scores_for_radar, 'o-', linewidth=2)
+        ax2.fill(angles, scores_for_radar, alpha=0.25)
+        ax2.set_xticks(angles[:-1])
+        ax2.set_xticklabels(exercises)
+        ax2.set_title('Exercise Performance Radar')
+        plt.setp(ax2.get_xticklabels(), fontsize=8)
+
+        plt.tight_layout()
+
+        # Save the figure for the document
+        img_buffer = io.BytesIO()
+        plt.savefig(img_buffer, format='png', dpi=300, bbox_inches='tight')
+        img_buffer.seek(0)
+
+        return fig, img_buffer
+
+    def calculate_exercise_scores(self, user_answers):
+        print("Calculating exercise scores")
+        exercises = list(self.controller.sections.keys())
+        scores = [0] * len(exercises)
+
+        for i, exercise in enumerate(exercises):
+            exercise_questions = 0
+            correct_answers = 0
+
+            for question, user_answer in user_answers.items():
+                if self.question_belongs_to_exercise(question, exercise):
+                    exercise_questions += 1
+                    if isinstance(user_answer, tuple):
+                        if exercise in ["Exercise 5", "Exercise 6"]:
+                            user_ans, correct_ans = user_answer
+                            if user_ans.lower() == correct_ans.lower():
+                                correct_answers += 1
+                        elif exercise == "Exercise 7":
+                            if user_answer[0] == user_answer[1]:
+                                correct_answers += 1
+                    else:
+                        correct_answer = self.controller.get_correct_answer(question)
+                        if user_answer == correct_answer:
+                            correct_answers += 1
+
+            if exercise_questions > 0:
+                scores[i] = (correct_answers / exercise_questions) * 100
+
+            print(f"Exercise: {exercise}")
+            print(f"Questions: {exercise_questions}")
+            print(f"Correct answers: {correct_answers}")
+            print(f"Score: {scores[i]}%")
+
+        print(f"Final scores: {scores}")
+        return scores
+
+    def question_belongs_to_exercise(self, question, exercise):
+        frames = self.controller.sections[exercise]
+        if isinstance(frames, list):
+            return any(frame in question for frame in frames)
+        else:
+            if exercise == "Exercise 7":
+                return question.startswith("7.")
+            elif exercise == "Reading Comprehension":
+                return question.startswith("Reading Comprehension")
+            elif exercise == "Exercise 1":
+                return question.startswith("1.")
+            elif exercise == "Exercise 2":
+                return question.startswith("2.")
+            elif exercise == "Exercise 3":
+                return question.startswith("3.")
+            elif exercise == "Exercise 4":
+                return question.startswith("Exercise 4")
+            elif exercise == "Exercise 5":
+                return question.startswith("Exercise 5")
+            elif exercise == "Exercise 6":
+                return question.startswith("Exercise 6")
+        return False
+    def create_and_send_doc_report(self, user_info, report_content):
+        # Create a new Document
+        doc = Document()
+
+        # Add the report content to the document
+        doc.add_heading('Diagnostic Test Report', 0)
+
+        # Split the report content into lines and add them to the document
+        for line in report_content.split('\n'):
+            if line.endswith(':'):
+                doc.add_heading(line, level=1)
+            else:
+                doc.add_paragraph(line)
+
+        # Add performance graphs to the document
+        doc.add_heading('Performance Graphs', level=1)
+        fig, img_buffer = self.generate_performance_graphs(self.controller.user_answers)
+
+        # Display the graph in the GUI
+        canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+        # Add the graph to the document
+        doc.add_picture(img_buffer, width=Inches(6))
+
+        # Add detailed answers to the document
+        doc.add_heading('Detailed Answers', level=1)
+        for section, frames in self.controller.sections.items():
+            doc.add_heading(section, level=2)
+            if isinstance(frames, list):
+                for frame_name in frames:
+                    self._add_answers_to_doc(doc, frame_name)
+            else:
+                self._add_answers_to_doc(doc, frames)
+
+        # Save the document
+        file_name = f"diagnostic_test_report_{user_info['Name']}.docx"
+        doc.save(file_name)
+
+        # Send the email with the .doc attachment
+        self.send_report_email(user_info, file_name)
+
+    def _add_answers_to_doc(self, doc, frame_name):
+        frame = self.controller.frames[frame_name]
+        if frame_name == "Exercise4Screen":
+            self._add_exercise4_answers_to_doc(doc, frame)
+        elif frame_name == "Exercise7Screen":
+            for question in frame.questions[0]['questions']:
+                q_text = f"7. {question['question']}"
+                self._add_answer_to_doc(doc, q_text)
+        else:
+            for section in frame.questions:
+                if 'subsections' in section:
+                    for subsection in section['subsections']:
+                        for question in subsection['questions']:
+                            self._add_answer_to_doc(doc, question['question'])
+                elif 'questions' in section:
+                    for question in section['questions']:
+                        self._add_answer_to_doc(doc, question['question'])
+
+    def _add_exercise4_answers_to_doc(self, doc, frame):
+        table = frame.questions[0]['table']
+        headers = table['headers']
+        correct_answers = table['correct']
+
+        doc.add_heading("Exercise 4:", level=3)
+        for i, header in enumerate(headers):
+            doc.add_heading(f"{header}:", level=4)
+            for j, correct in enumerate(correct_answers[i]):
+                question = f"Exercise 4 - {header} {j + 1}"
+                user_answer = self.controller.user_answers.get(question, "No answer")
+                if user_answer == correct:
+                    doc.add_paragraph(f"{user_answer}", style='List Bullet')
+                else:
+                    doc.add_paragraph(f"{user_answer} (Correct: {correct})", style='List Bullet')
+
+    def _add_answer_to_doc(self, doc, question):
+        user_answers = self.controller.user_answers
+        if question in user_answers:
+            answer = user_answers[question]
+            if isinstance(answer, tuple):  # This is for Exercise7
+                user_answer, correct_answer = answer
+                exercise7_frame = self.controller.frames["Exercise7Screen"]
+                user_text = next(
+                    (a['text'] for a in exercise7_frame.questions[0]['answers'] if a['label'] == user_answer),
+                    user_answer)
+                doc.add_paragraph(f"{question}: {user_text} (Correct: {correct_answer})")
+            else:
+                correct_answer = self.controller.get_correct_answer(question)
+                if correct_answer is None:
+                    doc.add_paragraph(f"{question}: {answer} (Correct answer not found)")
+                elif answer == correct_answer:
+                    doc.add_paragraph(f"{question}: {answer}")
+                else:
+                    doc.add_paragraph(f"{question}: {answer} (Correct: {correct_answer})")
+    def send_report_email(self, user_info, file_name):
+        sender_email = "azooz-belkharaf@hotmail.fr"
+        receiver_email = user_info.get("Teacher's e-mail", "")
+
+        if receiver_email:
+            msg = MIMEMultipart()
+            msg['Subject'] = "Diagnostic Test Report"
+            msg['From'] = sender_email
+            msg['To'] = receiver_email
+
+            # Add body to email
+            body = "Please find attached the Diagnostic Test Report."
+            msg.attach(MIMEText(body, 'plain'))
+
+            # Add attachment to email
+            with open(file_name, "rb") as attachment:
+                part = MIMEBase("application", "octet-stream")
+                part.set_payload(attachment.read())
+
+            encoders.encode_base64(part)
+            part.add_header(
+                "Content-Disposition",
+                f"attachment; filename= {os.path.basename(file_name)}",
+            )
+            msg.attach(part)
+
+            try:
+                with smtplib.SMTP('smtp-mail.outlook.com', 587) as smtp:
+                    smtp.starttls()
+                    smtp.login("azooz-belkharaf@hotmail.fr", "0123456789.az")
+                    smtp.send_message(msg)
+                    print(f"Report sent to {receiver_email}")
+            except Exception as e:
+                print(f"Error sending email: {e}")
+
+            # Remove the temporary file
+            os.remove(file_name)
+        else:
+            print("No email address provided, unable to send the report.")
+
+    def _insert_answers_for_frame(self, frame_name, user_answers):
+        print(f"Inserting answers for frame: {frame_name}")
+        frame = self.controller.frames[frame_name]
+        if frame_name == "Exercise4Screen":
+            self._insert_exercise4_answers(frame, user_answers)
+        elif frame_name == "Exercise5Screen":
+            self._insert_exercise5_answers(frame, user_answers)
+        elif frame_name == "Exercise6Screen":
+            self._insert_exercise6_answers(frame, user_answers)
+        elif frame_name == "Exercise7Screen":
+            self.report_content.insert(tk.END, "Communication:\n", "subheading")
+            for question in frame.questions[0]['questions']:
+                q_text = f"7. {question['question']}"
+                print(f"Exercise7 question: {q_text}")
+                self._insert_answer(q_text, user_answers)
+        else:
+            for section in frame.questions:
+                if 'subsections' in section:
+                    for subsection in section['subsections']:
+                        for question in subsection['questions']:
+                            self._insert_answer(question['question'], user_answers)
+                elif 'questions' in section:
+                    for question in section['questions']:
+                        self._insert_answer(question['question'], user_answers)
+
+    def _insert_exercise4_answers(self, frame, user_answers):
+        table = frame.questions[0]['table']
+        headers = table['headers']
+        correct_answers = table['correct']
+
+        self.report_content.insert(tk.END, "Exercise 4:\n", "subheading")
+        for i, header in enumerate(headers):
+            self.report_content.insert(tk.END, f"{header}:\n", "bold")
+            for j, correct in enumerate(correct_answers[i]):
+                question = f"Exercise 4 - {header} {j + 1}"
+                user_answer = user_answers.get(question, "No answer")
+                if user_answer == correct:
+                    self.report_content.insert(tk.END, f"{user_answer}\n", "correct")
+                else:
+                    self.report_content.insert(tk.END, f"{user_answer} (Correct: {correct})\n", "wrong")
+            self.report_content.insert(tk.END, "\n")
+
+    def _insert_exercise5_answers(self, frame, user_answers):
+        self.report_content.insert(tk.END, "Exercise 5:\n", "subheading")
+        all_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+        for i, day in enumerate(all_days):
+            question = f"Exercise 5 - Day {i + 1}"
+            if question in user_answers:
+                user_answer, correct_day = user_answers[question]
+                if user_answer.lower() == correct_day.lower():
+                    self.report_content.insert(tk.END, f"{user_answer}\n", "correct")
+                else:
+                    self.report_content.insert(tk.END, f"{user_answer} (Correct: {correct_day})\n", "wrong")
+            else:
+                self.report_content.insert(tk.END, f"{day}\n")
+
+    def _insert_exercise6_answers(self, frame, user_answers):
+        self.report_content.insert(tk.END, "Exercise 6:\n", "subheading")
+        all_months = ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December']
+
+        for i, month in enumerate(all_months):
+            question = f"Exercise 6 - Month {i + 1}"
+            if question in user_answers:
+                user_answer, correct_month = user_answers[question]
+                if user_answer.lower() == correct_month.lower():
+                    self.report_content.insert(tk.END, f"{user_answer}\n", "correct")
+                else:
+                    self.report_content.insert(tk.END, f"{user_answer} (Correct: {correct_month})\n", "wrong")
+            else:
+                self.report_content.insert(tk.END, f"{month}\n")
+
+    def _insert_answer(self, question, user_answers):
+        if question in user_answers:
+            answer = user_answers[question]
+            if isinstance(answer, tuple):  # This is for Exercise5, Exercise6, and Exercise7
+                user_answer, correct_answer = answer
+                if isinstance(correct_answer, str):  # Exercise5 and Exercise6
+                    if user_answer.lower() == correct_answer.lower():
+                        self.report_content.insert(tk.END, f"{question}: {user_answer}\n", "correct")
+                    else:
+                        self.report_content.insert(tk.END, f"{question}: {user_answer} (Correct: {correct_answer})\n",
+                                                   "wrong")
+                else:  # Exercise7
+                    exercise7_frame = self.controller.frames["Exercise7Screen"]
+                    user_text = next(
+                        (a['text'] for a in exercise7_frame.questions[0]['answers'] if a['label'] == user_answer),
+                        user_answer)
+                    correct_text = next(
+                        (a['text'] for a in exercise7_frame.questions[0]['answers'] if a['label'] == correct_answer),
+                        correct_answer)
+                    if user_answer == correct_answer:
+                        self.report_content.insert(tk.END, f"{question}: {user_text}\n", "correct")
+                    else:
+                        self.report_content.insert(tk.END, f"{question}: {user_text} (Correct: {correct_text})\n",
+                                                   "wrong")
+            else:
+                correct_answer = self.controller.get_correct_answer(question)
+                if correct_answer is None:
+                    self.report_content.insert(tk.END, f"{question}: {answer} (Correct answer not found)\n", "wrong")
+                elif answer == correct_answer:
+                    self.report_content.insert(tk.END, f"{question}: {answer}\n", "correct")
+                else:
+                    self.report_content.insert(tk.END, f"{question}: {answer} (Correct: {correct_answer})\n", "wrong")
+class DiagnosticTestApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+
+        self.title("Diagnostic Test Application")
+        self.state('zoomed')  # This will maximize the window on startup
+
+        # Create a custom title bar
+        self.overrideredirect(True)
+        self.title_bar = tk.Frame(self, bg='#2C3E50', relief='raised', bd=2)
+        self.title_bar.pack(expand=1, fill='x')
+
+        # Add title
+        title_label = tk.Label(self.title_bar, text="Diagnostic Test Application", bg='#2C3E50', fg='white')
+        title_label.pack(side='left', pady=4)
+
+        # Add buttons
+        close_button = tk.Button(self.title_bar, text='X', command=self.destroy, bg='#2C3E50', fg='white')
+        close_button.pack(side='right', padx=(5, 10))
+        maximize_button = tk.Button(self.title_bar, text='□', command=self.toggle_fullscreen, bg='#2C3E50', fg='white')
+        maximize_button.pack(side='right', padx=5)
+        minimize_button = tk.Button(self.title_bar, text='—', command=self.minimize, bg='#2C3E50', fg='white')
+        minimize_button.pack(side='right', padx=(10, 5))
+
+        # Bind the title bar to move the window
+        self.title_bar.bind('<B1-Motion>', self.move_window)
+
+        self.sections = {
+            "Reading Comprehension": "ReadingComprehensionScreen",
+            "Exercise 1": "Exercise1Screen",
+            "Exercise 2": "Exercise2Screen",
+            "Exercise 3": "Exercise3Screen",
+            "Exercise 4": "Exercise4Screen",
+            "Exercise 5": "Exercise5Screen",
+            "Exercise 6": "Exercise6Screen",
+            "Exercise 7": "Exercise7Screen"
+        }
+        self.frames = {}
+        self.user_info = {}
+        self.user_answers = {}
+        self.score = 0
+
+        container = tk.Frame(self)
+        container.pack(side="top", fill="both", expand=True)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+
+        for F in (StartScreen, StudentTeacherScreen, StudentLevelScreen, InfoScreen, FirstBacScreen, SecondBacScreen,
+                  ReadingComprehensionScreen, Exercise1Screen, Exercise2Screen, Exercise3Screen, Exercise4Screen,
+                  Exercise5Screen, Exercise6Screen, Exercise7Screen, ReportScreen):
+            page_name = F.__name__
+            frame = F(parent=container, controller=self)
+            self.frames[page_name] = frame
+            frame.grid(row=0, column=0, sticky="nsew")
+
+        self.show_frame("StartScreen")
+    def show_frame(self, page_name):
+        frame = self.frames[page_name]
+        frame.tkraise()
+
+    def move_window(self, event):
+        self.geometry(f'+{event.x_root}+{event.y_root}')
+
+    def toggle_fullscreen(self):
+        self.attributes('-fullscreen', not self.attributes('-fullscreen'))
+
+    def minimize(self):
+        self.withdraw()
+        self.overrideredirect(False)
+        self.deiconify()
+
+    def set_user_info(self, info):
+        self.user_info = info
+
+    def calculate_score(self):
+        correct_answers = 0
+        total_questions = 0
+        for question, answer in self.user_answers.items():
+            if isinstance(answer, tuple):
+                user_answer, correct_answer = answer
+                if isinstance(correct_answer, str):  # Exercise 5 and 6
+                    if user_answer.lower() == correct_answer.lower():
+                        correct_answers += 1
+                else:  # Exercise 7
+                    if user_answer == correct_answer:
+                        correct_answers += 1
+            else:
+                correct_answer = self.get_correct_answer(question)
+                if answer == correct_answer:
+                    correct_answers += 1
+            total_questions += 1
+        return correct_answers, total_questions
+    def submit_test(self):
+        print("Submitting test")
+        for section, frames in self.sections.items():
+            print(f"Processing section: {section}")
+            if isinstance(frames, list):
+                for frame_name in frames:
+                    print(f"Submitting answers for frame: {frame_name}")
+                    self.frames[frame_name].submit_test()
+            else:
+                print(f"Submitting answers for frame: {frames}")
+                self.frames[frames].submit_test()
+        print("All answers submitted")
+        print("User answers:")
+        print("Final user answers before showing report:")
+        for question, answer in self.user_answers.items():
+            print(f"{question}: {answer}")
+
+        self.show_report()
+
+    def set_answer(self, question, answer):
+        print(f"Setting answer: {question}: {answer}")
+        self.user_answers[question] = answer
+
+    def get_correct_answer(self, question):
+        for section, frames in self.sections.items():
+            if isinstance(frames, list):
+                for frame_name in frames:
+                    correct_answer = self._get_correct_answer_from_frame(frame_name, question)
+                    if correct_answer is not None:
+                        return correct_answer
+            else:
+                correct_answer = self._get_correct_answer_from_frame(frames, question)
+                if correct_answer is not None:
+                    return correct_answer
+        print(f"Warning: No correct answer found for question: {question}")
+        return None
+
+    def _get_correct_answer_from_frame(self, frame_name, question):
+        print(f"Getting correct answer for: {question}")
+        frame = self.frames[frame_name]
+        if frame_name == "Exercise7Screen":
+            for q in frame.questions[0]['questions']:
+                if f"7. {q['question']}" == question:
+                    return q['correct']
+        else:
+            for section in frame.questions:
+                if 'subsections' in section:
+                    for subsection in section['subsections']:
+                        for q in subsection['questions']:
+                            if q['question'] == question:
+                                return q['correct']
+                elif 'questions' in section:
+                    for q in section['questions']:
+                        if q['question'] == question:
+                            return q['correct']
+        return None
+    def show_report(self):
+        self.calculate_score()
+        print("Collected answers:")  # Debug print
+        for question, answer in self.user_answers.items():
+            print(f"{question}: {answer}")
+        report_screen = self.frames["ReportScreen"]
+        report_screen.generate_report(self.user_info, self.user_answers, self.score)
+        self.show_frame("ReportScreen")
+
+
+if __name__ == "__main__":
+    app = DiagnosticTestApp()
+    app.mainloop()
